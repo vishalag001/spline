@@ -30,6 +30,7 @@ sealed trait CollectionDef {
   def name: String
   def collectionType: CollectionType
   def indexDefs: Seq[IndexDef] = Nil
+  def shardKeys: Seq[String] = Seq("_key")
 }
 
 sealed abstract class EdgeDef(override val name: String, val froms: Seq[NodeDef], val tos: Seq[NodeDef])
@@ -153,6 +154,9 @@ object EdgeDef {
 object NodeDef {
 
   object DataSource extends NodeDef("dataSource") with CollectionDef {
+
+    override def shardKeys: Seq[String] = Seq("uri")
+
     override def indexDefs: Seq[IndexDef] = Seq(
       IndexDef(Seq("_created"), new PersistentIndexOptions),
       IndexDef(Seq("uri"), (new PersistentIndexOptions).unique(true)),

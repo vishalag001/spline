@@ -18,7 +18,6 @@ package za.co.absa.spline.persistence
 
 case class DatabaseCreateOptions(
   numShards: Int = 1,
-  shardKeys: Array[String] = Array("_key"),
   replFactor: Int = 1,
   waitForSync: Boolean = false
 )

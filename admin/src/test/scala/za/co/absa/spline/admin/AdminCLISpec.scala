@@ -114,12 +114,10 @@ class AdminCLISpec
       cli.exec(Array(
         "db-init",
         "--shard-num", "42",
-        "--shard-keys", "a, b, c",
         "--repl-factor", "55",
         "--wait-for-sync",
         "arangodb://foo/bar"))
       dbOptionCaptor.getValue.numShards should equal(42)
-      dbOptionCaptor.getValue.shardKeys should contain theSameElementsInOrderAs Seq("a", "b", "c")
       dbOptionCaptor.getValue.replFactor should equal(55)
       dbOptionCaptor.getValue.waitForSync should equal(true)
     }

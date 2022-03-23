@@ -117,13 +117,6 @@ class AdminCLI(dbManagerFactory: ArangoManagerFactory) {
           text "Number of shards per collection. Default is 1."
           action { case (v, c@AdminCLIConfig(cmd@DBInit(_, _, _, opts), _, _)) => c.copy(cmd.copy(options = opts.copy(numShards = v))) },
 
-        opt[String]("shard-keys")
-          text "Comma separated list of shard keys per collection. Default is _key."
-          action {
-          case (v, c@AdminCLIConfig(cmd@DBInit(_, _, _, opts), _, _)) =>
-            c.copy(cmd.copy(options = opts.copy(shardKeys = v.split(",").map(_.trim))))
-        },
-
         opt[Int]("repl-factor")
           text "Replication factor per collection. Default is 1."
           action { case (v, c@AdminCLIConfig(cmd@DBInit(_, _, _, opts), _, _)) => c.copy(cmd.copy(options = opts.copy(replFactor = v))) },

@@ -142,7 +142,7 @@ class ArangoManagerImpl(
           val collectionOptions = new CollectionCreateOptions()
             .`type`(colDef.collectionType)
             .numberOfShards(options.numShards)
-            .shardKeys(options.shardKeys: _*)
+            .shardKeys(colDef.shardKeys: _*)
             .replicationFactor(options.replFactor)
             .waitForSync(options.waitForSync)
           db.createCollection(colDef.name, collectionOptions).toScala
