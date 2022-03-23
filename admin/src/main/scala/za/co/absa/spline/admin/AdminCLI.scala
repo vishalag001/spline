@@ -111,7 +111,26 @@ class AdminCLI(dbManagerFactory: ArangoManagerFactory) {
           action { case (_, c@AdminCLIConfig(cmd: DBInit, _, _)) => c.copy(cmd.copy(force = true)) },
         opt[Unit]('s', "skip")
           text "Skip existing database. Don't throw error, just end."
-          action { case (_, c@AdminCLIConfig(cmd: DBInit, _, _)) => c.copy(cmd.copy(skip = true)) })
+          action { case (_, c@AdminCLIConfig(cmd: DBInit, _, _)) => c.copy(cmd.copy(skip = true)) },
+
+        opt[Int]("shard-num")
+          text "Number of shards per collection. Default is 1."
+          action { case (v, c@AdminCLIConfig(cmd@DBInit(_, _, _, opts), _, _)) => c.copy(cmd.copy(options = opts.copy(numShards = v))) },
+
+        opt[String]("shard-keys")
+          text "Comma separated list of shard keys per collection. Default is _key."
+          action {
+          case (v, c@AdminCLIConfig(cmd@DBInit(_, _, _, opts), _, _)) =>
+            c.copy(cmd.copy(options = opts.copy(shardKeys = v.split(",").map(_.trim))))
+        },
+
+        opt[Int]("repl-factor")
+          text "Replication factor per collection. Default is 1."
+          action { case (v, c@AdminCLIConfig(cmd@DBInit(_, _, _, opts), _, _)) => c.copy(cmd.copy(options = opts.copy(replFactor = v))) },
+
+        opt[Unit]("wait-for-sync")
+          text "Ensure the data is synchronized to disk before returning from a document CUD operation."
+          action { case (_, c@AdminCLIConfig(cmd@DBInit(_, _, _, opts), _, _)) => c.copy(cmd.copy(options = opts.copy(waitForSync = true))) })
         children (this.dbCommandOptions: _*)
         )
 
@@ -173,14 +192,14 @@ class AdminCLI(dbManagerFactory: ArangoManagerFactory) {
     val sslCtxOpt = Option.when(conf.disableSslValidation)(TLSUtils.TrustingAllSSLContext)
 
     conf.cmd match {
-      case DBInit(url, force, skip) =>
+      case DBInit(url, force, skip, options) =>
         val onExistsAction = (force, skip) match {
           case (true, false) => Drop
           case (false, true) => Skip
           case (false, false) => Fail
         }
         val dbManager = dbManagerFactory.create(url, sslCtxOpt)
-        val wasInitialized = Await.result(dbManager.initialize(onExistsAction), Duration.Inf)
+        val wasInitialized = Await.result(dbManager.initialize(onExistsAction, options), Duration.Inf)
         if (!wasInitialized) println(ansi"%yellow{Skipped. DB is already initialized}")
 
       case DBUpgrade(url) =>

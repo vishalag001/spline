@@ -27,7 +27,7 @@ import za.co.absa.commons.scalatest.{ConsoleStubs, SystemExitFixture}
 import za.co.absa.spline.common.SplineBuildInfo
 import za.co.absa.spline.common.security.TLSUtils
 import za.co.absa.spline.persistence.OnDBExistsAction.{Drop, Fail, Skip}
-import za.co.absa.spline.persistence.{ArangoConnectionURL, ArangoManager, ArangoManagerFactory, OnDBExistsAction}
+import za.co.absa.spline.persistence.{ArangoConnectionURL, ArangoManager, ArangoManagerFactory, DatabaseCreateOptions, OnDBExistsAction}
 
 import javax.net.ssl.SSLContext
 import scala.concurrent.Future
@@ -67,6 +67,7 @@ class AdminCLISpec
 
   {
     val connUrlCaptor: ArgumentCaptor[ArangoConnectionURL] = ArgumentCaptor.forClass(classOf[ArangoConnectionURL])
+    val dbOptionCaptor: ArgumentCaptor[DatabaseCreateOptions] = ArgumentCaptor.forClass(classOf[DatabaseCreateOptions])
     val actionFlgCaptor: ArgumentCaptor[OnDBExistsAction] = ArgumentCaptor.forClass(classOf[OnDBExistsAction])
     val sslCtxCaptor: ArgumentCaptor[Option[SSLContext]] = ArgumentCaptor.forClass(classOf[Option[SSLContext]])
 
@@ -75,7 +76,7 @@ class AdminCLISpec
       thenReturn arangoManagerMock)
 
     (when(
-      arangoManagerMock.initialize(actionFlgCaptor.capture))
+      arangoManagerMock.initialize(actionFlgCaptor.capture, dbOptionCaptor.capture))
       thenReturn Future.successful(true))
 
     (when(
@@ -108,6 +109,20 @@ class AdminCLISpec
     }
 
     behavior of "DB-Init"
+
+    it should "accept custom collection options" in assertingStdOut(include("DONE")) {
+      cli.exec(Array(
+        "db-init",
+        "--shard-num", "42",
+        "--shard-keys", "a, b, c",
+        "--repl-factor", "55",
+        "--wait-for-sync",
+        "arangodb://foo/bar"))
+      dbOptionCaptor.getValue.numShards should equal(42)
+      dbOptionCaptor.getValue.shardKeys should contain theSameElementsInOrderAs Seq("a", "b", "c")
+      dbOptionCaptor.getValue.replFactor should equal(55)
+      dbOptionCaptor.getValue.waitForSync should equal(true)
+    }
 
     it should "initialize database" in assertingStdOut(include("DONE")) {
       cli.exec(Array("db-init", "arangodb://foo/bar"))

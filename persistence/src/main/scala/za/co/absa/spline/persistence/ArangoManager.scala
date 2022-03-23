@@ -41,7 +41,7 @@ trait ArangoManager {
   /**
    * @return `true` if actual initialization was performed.
    */
-  def initialize(onExistsAction: OnDBExistsAction): Future[Boolean]
+  def initialize(onExistsAction: OnDBExistsAction, options: DatabaseCreateOptions): Future[Boolean]
   def upgrade(): Future[Unit]
   def execute(actions: AuxiliaryDBAction*): Future[Unit]
 }
@@ -58,7 +58,7 @@ class ArangoManagerImpl(
 
   import ArangoManagerImpl._
 
-  def initialize(onExistsAction: OnDBExistsAction): Future[Boolean] = {
+  def initialize(onExistsAction: OnDBExistsAction, options: DatabaseCreateOptions): Future[Boolean] = {
     log.debug("Initialize database")
     db.exists.toScala.flatMap { exists =>
       if (exists && onExistsAction == Skip) {
@@ -67,7 +67,7 @@ class ArangoManagerImpl(
       } else for {
         _ <- deleteDbIfRequested(db, onExistsAction == Drop)
         _ <- db.create().toScala
-        _ <- createCollections(db)
+        _ <- createCollections(db, options)
         _ <- createAQLUserFunctions(db)
         _ <- createFoxxServices()
         _ <- createIndices(db)
@@ -134,11 +134,19 @@ class ArangoManagerImpl(
     } yield Unit
   }
 
-  private def createCollections(db: ArangoDatabaseAsync) = {
+  private def createCollections(db: ArangoDatabaseAsync, options: DatabaseCreateOptions) = {
     log.debug(s"Create collections")
     Future.sequence(
       for (colDef <- sealedInstancesOf[CollectionDef])
-        yield db.createCollection(colDef.name, new CollectionCreateOptions().`type`(colDef.collectionType)).toScala)
+        yield {
+          val collectionOptions = new CollectionCreateOptions()
+            .`type`(colDef.collectionType)
+            .numberOfShards(options.numShards)
+            .shardKeys(options.shardKeys: _*)
+            .replicationFactor(options.replFactor)
+            .waitForSync(options.waitForSync)
+          db.createCollection(colDef.name, collectionOptions).toScala
+        })
   }
 
   private def createGraphs(db: ArangoDatabaseAsync) = {
