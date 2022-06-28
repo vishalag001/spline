@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "rootDir": "src/main/typescript",
+    "outDir": "target/classes",
+    "target": "es6",
+    "module": "commonjs",
+    "esModuleInterop": true,
+    "sourceMap": true,
+    "strict": false
+  }
+}
